@@ -1,0 +1,59 @@
+# ────────────────────────────────────────────────────────────
+# Much-To-Do  –  CloudWatch Logs Insights Queries
+# Default log group: /much-to-do/<environment>/app
+# ────────────────────────────────────────────────────────────
+
+# 1. All ERROR and FATAL lines in the last hour
+fields @timestamp, @message
+| filter @message like /ERROR|FATAL|panic/
+| sort @timestamp desc
+| limit 100
+
+# 2. Request count by HTTP status code
+fields @timestamp, status
+| filter ispresent(status)
+| stats count(*) as requests by status
+| sort requests desc
+
+# 3. Slowest API endpoints – p99 latency
+fields path, duration_ms
+| filter ispresent(duration_ms) and ispresent(path)
+| stats pct(duration_ms, 99) as p99_ms,
+        avg(duration_ms)     as avg_ms,
+        count(*)             as calls
+  by path
+| sort p99_ms desc
+| limit 20
+
+# 4. Error rate per minute (trend chart)
+fields @timestamp, @message
+| filter @message like /ERROR/
+| stats count(*) as errors by bin(1min)
+| sort @timestamp asc
+
+# 5. Top 10 client IPs by request volume (abuse detection)
+fields remote_ip
+| filter ispresent(remote_ip)
+| stats count(*) as req_count by remote_ip
+| sort req_count desc
+| limit 10
+
+# 6. MongoDB slow query log lines
+fields @timestamp, @message
+| filter @message like /slow_query/
+| parse @message "collection=* duration_ms=*" as collection, duration_ms
+| stats avg(duration_ms) as avg_ms, max(duration_ms) as max_ms, count(*) as calls
+  by collection
+| sort avg_ms desc
+
+# 7. Container crash / OOM events
+fields @timestamp, @message
+| filter @message like /signal: killed|OOM|out of memory|container exited/
+| sort @timestamp desc
+| limit 20
+
+# 8. Deployment markers
+fields @timestamp, @message
+| filter @message like /backend started/
+| sort @timestamp desc
+| limit 10

@@ -1,0 +1,54 @@
+[
+  {
+    "AlarmName": "much-to-do-high-cpu",
+    "AlarmDescription": "Backend ASG average CPU > 80% for 4 min — scale-out or investigate",
+    "MetricName": "CPUUtilization",
+    "Namespace": "AWS/EC2",
+    "Statistic": "Average",
+    "Period": 120,
+    "EvaluationPeriods": 2,
+    "Threshold": 80,
+    "ComparisonOperator": "GreaterThanThreshold",
+    "Dimensions": [{ "Name": "AutoScalingGroupName", "Value": "${asg_name}" }],
+    "TreatMissingData": "notBreaching"
+  },
+  {
+    "AlarmName": "much-to-do-alb-5xx",
+    "AlarmDescription": "More than 10 HTTP 5xx errors in 60 s",
+    "MetricName": "HTTPCode_Target_5XX_Count",
+    "Namespace": "AWS/ApplicationELB",
+    "Statistic": "Sum",
+    "Period": 60,
+    "EvaluationPeriods": 1,
+    "Threshold": 10,
+    "ComparisonOperator": "GreaterThanThreshold",
+    "Dimensions": [{ "Name": "LoadBalancer", "Value": "${alb_arn_suffix}" }],
+    "TreatMissingData": "notBreaching"
+  },
+  {
+    "AlarmName": "much-to-do-alb-latency-p99",
+    "AlarmDescription": "ALB p99 latency > 2 s for 2 minutes",
+    "MetricName": "TargetResponseTime",
+    "Namespace": "AWS/ApplicationELB",
+    "ExtendedStatistic": "p99",
+    "Period": 60,
+    "EvaluationPeriods": 2,
+    "Threshold": 2,
+    "ComparisonOperator": "GreaterThanThreshold",
+    "Dimensions": [{ "Name": "LoadBalancer", "Value": "${alb_arn_suffix}" }],
+    "TreatMissingData": "notBreaching"
+  },
+  {
+    "AlarmName": "much-to-do-redis-high-cpu",
+    "AlarmDescription": "ElastiCache Redis CPU > 70%",
+    "MetricName": "EngineCPUUtilization",
+    "Namespace": "AWS/ElastiCache",
+    "Statistic": "Average",
+    "Period": 120,
+    "EvaluationPeriods": 2,
+    "Threshold": 70,
+    "ComparisonOperator": "GreaterThanThreshold",
+    "Dimensions": [{ "Name": "ReplicationGroupId", "Value": "${redis_group_id}" }],
+    "TreatMissingData": "notBreaching"
+  }
+]
