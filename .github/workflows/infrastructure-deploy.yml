@@ -10,13 +10,6 @@ on:
     branches: [main]
     paths: ["terraform/**"]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: Target environment
-        required: true
-        default: prod
-        type: choice
-        options: [dev, staging, prod]
 
 env:
   TF_VERSION: "1.7.5"
@@ -89,58 +82,4 @@ jobs:
             -var="ami_id=${{ secrets.EC2_AMI_ID }}" \
             -var="key_name=${{ secrets.EC2_KEY_NAME }}" \
             -var="mongo_uri_secret_id=${{ secrets.MONGO_URI_SECRET_ID }}" \
-            -var="alarm_email=${{ secrets.ALARM_EMAIL }}" \
-            -out=tfplan \
-            -detailed-exitcode 2>&1 | tee plan-output.txt
-        continue-on-error: true
-
-      - name: Upload plan artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan-prod
-          path: terraform/tfplan
-          retention-days: 1
-
-  apply:
-    name: Terraform Apply
-    runs-on: ubuntu-latest
-    needs: plan
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Configure AWS (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Download plan
-        uses: actions/download-artifact@v4
-        with:
-          name: tfplan-prod
-          path: terraform
-
-      - name: Terraform init
-        working-directory: terraform
-        run: terraform init
-
-      - name: Terraform apply
-        working-directory: terraform
-        run: terraform apply -auto-approve tfplan
-
-      - name: Capture outputs
-        working-directory: terraform
-        run: terraform output -json > /tmp/tf-outputs.json
-
-      - name: Upload outputs
-        uses: actions/upload-artifact@v4
-        with:
-          name: tf-outputs-prod
-          path: /tmp/tf-outputs.json
+            -var="alarm_email=${{ secrets.ALARM_EMAIL }}"
