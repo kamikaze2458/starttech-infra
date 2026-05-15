@@ -14,6 +14,7 @@ on:
 env:
   TF_VERSION: "1.7.5"
   AWS_REGION: "eu-central-1"
+  AWS_DEFAULT_REGION: "eu-central-1"
 
 permissions:
   contents: read
@@ -36,7 +37,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: eu-central-1
 
       - name: Terraform fmt check
         working-directory: terraform
@@ -67,19 +68,31 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: eu-central-1
 
       - name: Terraform init
         working-directory: terraform
         run: terraform init
+        env:
+          AWS_DEFAULT_REGION: eu-central-1
 
       - name: Terraform plan
         working-directory: terraform
+        env:
+          AWS_DEFAULT_REGION: eu-central-1
+          TF_VAR_environment: prod
+          TF_VAR_frontend_bucket_name: ${{ secrets.FRONTEND_BUCKET_NAME }}
+          TF_VAR_ami_id: ${{ secrets.EC2_AMI_ID }}
+          TF_VAR_key_name: ${{ secrets.EC2_KEY_NAME }}
+          TF_VAR_mongo_uri_secret_id: ${{ secrets.MONGO_URI_SECRET_ID }}
+          TF_VAR_alarm_email: ${{ secrets.ALARM_EMAIL }}
         run: |
           terraform plan \
-            -var="environment=prod" \
-            -var="frontend_bucket_name=${{ secrets.FRONTEND_BUCKET_NAME }}" \
-            -var="ami_id=${{ secrets.EC2_AMI_ID }}" \
-            -var="key_name=${{ secrets.EC2_KEY_NAME }}" \
-            -var="mongo_uri_secret_id=${{ secrets.MONGO_URI_SECRET_ID }}" \
-            -var="alarm_email=${{ secrets.ALARM_EMAIL }}"
+            -var="aws_region=eu-central-1" \
+            -detailed-exitcode 2>&1 | tee plan-output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+          if [ $EXIT_CODE -eq 1 ]; then
+            echo "Terraform plan failed"
+            exit 1
+          fi
+          echo "Plan complete (exit code: $EXIT_CODE)"
