@@ -28,3 +28,4 @@ mongo_uri_secret_id = "much-to-do/mongo-uri"
 
 # Monitoring
 alarm_email = "ops@example.com"
+
